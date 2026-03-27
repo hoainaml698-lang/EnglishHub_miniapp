@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="EnglishHub - Nền tảng học tiếng Anh mini với từ vựng, ngữ pháp và bài tập trực tuyến.">
+    <title>EnglishHub Mini App</title>
+    <style>
+        /* === 1. BIẾN MÀU SẮC & THIẾT LẬP CHUNG === */
+        :root {
+            --primary: #2c3e66;
+            --accent: #f39c12;
+            --bg-light: #f4f7f6;
+            --text-light: #333;
+            --card-bg: #fff;
+            --border: #ddd;
+        }
+
+        /* Phân cấp: Class & !important */
+        body.dark-mode {
+            --primary: #1a253d;
+            --accent: #d68910;
+            --bg-light: #121212;
+            --text-light: #f4f7f6;
+            --card-bg: #1e1e1e;
+            --border: #444;
+            background-color: var(--bg-light) !important;
+        }
+
+        /* Phân cấp: Element/Thẻ */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: var(--text-light);
+            line-height: 1.6;
+            transition: background-color 0.3s, color 0.3s;
+            overflow-x: hidden;
+        }
+
+        /* === 2. ĐIỀU HƯỚNG & LAYOUT === */
+        header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .logo { font-size: 1.5rem; font-weight: bold; cursor: pointer; }
+
+        nav ul { display: flex; list-style: none; gap: 1.5rem; }
+        nav a { color: white; text-decoration: none; font-weight: bold; cursor: pointer; transition: color 0.2s; }
+        nav a:hover, nav a.active { color: var(--accent); }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* === CƠ CHẾ MINI APP (SPA) === */
+        section {
+            display: none; /* Mặc định ẩn tất cả */
+            padding: 6rem 0 4rem 0; 
+            min-height: 100vh;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Phân cấp: ID */
+        #hero {
+            display: flex; /* Chỉ hiện Hero lúc đầu */
+            height: 100vh;
+            background: linear-gradient(135deg, var(--primary), #4b6584);
+            color: white;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 0 2rem;
+        }
+
+        #hero h1 { font-size: 3.5rem; margin-bottom: 1rem; }
+        #hero p { font-size: 1.2rem; margin-bottom: 2rem; max-width: 600px; }
+
+        h2.section-title {
+            text-align: center; color: var(--primary); margin-bottom: 2rem; font-size: 2rem; text-transform: uppercase;
+        }
+        body.dark-mode h2.section-title { color: var(--accent); }
+
+        /* Phân cấp: Pseudo-class */
+        .btn {
+            background: var(--accent); color: white; border: none;
+            padding: 0.8rem 1.8rem; cursor: pointer; border-radius: 8px;
+            font-size: 1.1rem; font-weight: bold; transition: all 0.2s;
+        }
+        .btn:hover { background: #d68910; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        .btn:active { transform: translateY(0); }
+
+        /* === 3. TỪ VỰNG (FLIP CARDS) === */
+        .vocab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.5rem; }
+        .card { background: transparent; height: 220px; perspective: 1000px; cursor: pointer; }
+        .card-inner { position: relative; width: 100%; height: 100%; text-align: center; transition: transform 0.6s; transform-style: preserve-3d; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .card.flipped .card-inner { transform: rotateY(180deg); }
+        .card-front, .card-back { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 1.5rem; background: var(--card-bg); border-radius: 12px; border: 1px solid var(--border); }
+        .card-back { transform: rotateY(180deg); background: var(--primary); color: white; }
+        .speaker-icon { margin-top: 15px; font-size: 1.5rem; background: var(--card-bg); border: none; cursor: pointer; border-radius: 50%; width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; transition: 0.2s; }
+        .speaker-icon:hover { transform: scale(1.1); }
+
+        /* === 4. NGỮ PHÁP (ACCORDION) === */
+        .accordion-item { background: var(--card-bg); border: 1px solid var(--border); margin-bottom: 1rem; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .accordion-header { padding: 1.2rem; background: var(--primary); color: white; cursor: pointer; font-weight: bold; display: flex; justify-content: space-between; font-size: 1.1rem; }
+        .accordion-content { padding: 0 1.2rem; max-height: 0; overflow: hidden; transition: all 0.3s ease-in-out; background: var(--card-bg); }
+        .accordion-item.active .accordion-content { padding: 1.2rem; max-height: 500px; }
+        .copy-btn { margin-top: 10px; font-size: 0.9rem; padding: 0.5rem 1rem; background: #7f8c8d; }
+
+        /* === 5. BÀI TẬP (TABS) === */
+        .tabs { display: flex; justify-content: center; margin-bottom: 2rem; border-bottom: 2px solid var(--border); }
+        .tab-btn { background: none; border: none; padding: 1rem 2rem; cursor: pointer; font-size: 1.1rem; color: var(--text-light); font-weight: bold; position: relative; }
+        .tab-btn.active { color: var(--accent); }
+        .tab-btn.active::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 3px; background: var(--accent); }
+        .tab-content { display: none; background: var(--card-bg); padding: 2.5rem; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .tab-content.active { display: block; }
+
+        .question { margin-bottom: 1.8rem; font-size: 1.1rem; }
+        .options { display: flex; flex-direction: column; gap: 0.8rem; margin-top: 0.8rem; padding-left: 1rem; }
+        .options label { cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 5px; transition: background 0.2s; }
+        .options label:hover { background: rgba(0,0,0,0.05); }
+        body.dark-mode .options label:hover { background: rgba(255,255,255,0.05); }
+
+        .fill-blank-item { margin-bottom: 1.5rem; font-size: 1.1rem; }
+        .fill-blank-item input { padding: 0.5rem; margin: 0 0.5rem; border: 2px solid var(--border); border-radius: 6px; font-size: 1rem; outline: none; width: 120px; text-align: center; }
+        .fill-blank-item input:focus { border-color: var(--accent); }
+        
+        .quiz-feedback { margin-top: 1.5rem; font-weight: bold; font-size: 1.2rem; text-align: center; }
+        .exp-text { display: none; margin-top: 8px; font-size: 0.95rem; padding: 10px; background: rgba(0,0,0,0.03); border-radius: 5px; border-left: 4px solid var(--primary); }
+
+        /* === 6. TIẾN TRÌNH === */
+        .progress-container { background: var(--card-bg); padding: 3rem 2rem; border-radius: 12px; border: 1px solid var(--border); text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .progress-bar-bg { width: 100%; background: #e0e0e0; height: 25px; border-radius: 15px; overflow: hidden; margin: 1.5rem 0; box-shadow: inset 0 2px 5px rgba(0,0,0,0.1); }
+        .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--accent)); width: 0%; transition: width 0.8s ease-out; }
+        .stats { display: flex; justify-content: center; gap: 3rem; margin-top: 2rem; font-size: 1.2rem; flex-wrap: wrap; }
+        .stat-box { padding: 1rem 2rem; background: rgba(0,0,0,0.03); border-radius: 8px; border: 1px solid var(--border); }
+
+        /* === 7. THÀNH PHẦN KHÁC === */
+        footer { background: var(--primary); color: white; text-align: center; padding: 2rem; margin-top: auto; }
+        
+        #toast-container { position: fixed; bottom: 30px; right: 30px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { background: #34495e; color: white; padding: 1rem 1.5rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); animation: slideIn 0.3s, fadeOut 0.5s 2.5s forwards; display: flex; align-items: center; gap: 10px; }
+        @keyframes slideIn { from { transform: translateX(120%); } to { transform: translateX(0); } }
+        @keyframes fadeOut { to { opacity: 0; } }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            header { flex-direction: column; padding: 1rem; }
+            nav ul { flex-wrap: wrap; justify-content: center; gap: 1rem; margin-top: 10px; }
+            #hero h1 { font-size: 2.5rem; }
+            .stats { gap: 1rem; }
+            .stat-box { width: 100%; }
+        }
+
+        /* Thứ tự viết sau - Ghi đè */
+        .text-override { color: red; } 
+        .text-override { color: var(--accent); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo" onclick="showSection('hero')">📚 EnglishHub</div>
+        <nav>
+            <ul>
+                <li><a onclick="showSection('hero')" class="nav-link active">Trang chủ</a></li>
+                <li><a onclick="showSection('vocab')" class="nav-link">Từ vựng</a></li>
+                <li><a onclick="showSection('grammar')" class="nav-link">Ngữ pháp</a></li>
+                <li><a onclick="showSection('quiz')" class="nav-link">Bài tập</a></li>
+                <li><a onclick="showSection('progress')" class="nav-link">Tiến trình</a></li>
+            </ul>
+        </nav>
+        <button id="theme-toggle" class="btn" style="padding: 0.5rem 1rem; font-size: 1.2rem;" title="Đổi giao diện">🌓</button>
+    </header>
+
+    <main>
+        <section id="hero">
+            <h1>Nâng Cao Tiếng Anh Mỗi Ngày</h1>
+            <p>Học từ vựng, ngữ pháp và kiểm tra trình độ hoàn toàn miễn phí với giao diện ứng dụng thông minh.</p>
+            <button class="btn" onclick="showSection('quiz')">Bắt đầu làm bài ngay</button>
+        </section>
+
+        <div class="container">
+            <section id="vocab">
+                <h2 class="section-title">Từ Vựng (Vocabulary)</h2>
+                <div style="text-align: center; margin-bottom: 2rem;">
+                    <p>Nhấp vào thẻ để xem nghĩa. Nhấp vào biểu tượng 🔊 để nghe phát âm.</p>
+                </div>
+                <div class="vocab-grid" id="vocab-container"></div>
+            </section>
+
+            <section id="grammar">
+                <h2 class="section-title">Ngữ Pháp (Grammar)</h2>
+                <div id="grammar-container"></div>
+            </section>
+
+            <section id="quiz">
+                <h2 class="section-title">Kiểm Tra Trình Độ (Quiz)</h2>
+                <div class="tabs">
+                    <button class="tab-btn active" onclick="switchTab('mcq')">Trắc nghiệm</button>
+                    <button class="tab-btn" onclick="switchTab('fill')">Điền từ</button>
+                </div>
+
+                <div id="tab-mcq" class="tab-content active">
+                    <div id="mcq-container"></div>
+                    <div style="text-align: center; margin-top: 2rem;">
+                        <button class="btn" onclick="submitMCQ()">Nộp bài trắc nghiệm</button>
+                    </div>
+                    <div id="mcq-result" class="quiz-feedback"></div>
+                </div>
+
+                <div id="tab-fill" class="tab-content">
+                    <div id="fill-container"></div>
+                    <div style="text-align: center; margin-top: 2rem;">
+                        <button class="btn" onclick="submitFill()">Kiểm tra đáp án</button>
+                    </div>
+                    <div id="fill-result" class="quiz-feedback"></div>
+                </div>
+            </section>
+
+            <section id="progress">
+                <h2 class="section-title">Tiến Trình Của Bạn</h2>
+                <div class="progress-container">
+                    <h3>Tổng quan quá trình học</h3>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" id="progress-fill"></div>
+                    </div>
+                    <p id="progress-text" style="font-size: 1.5rem; font-weight: bold; color: var(--primary);">0%</p>
+                    
+                    <div class="stats">
+                        <div class="stat-box">
+                            <p>🔥 Chuỗi ngày học liên tiếp</p>
+                            <p><span id="streak-count" class="text-override" style="font-size: 2rem;">0</span> ngày</p>
+                        </div>
+                        <div class="stat-box">
+                            <p>🏆 Điểm kinh nghiệm (XP)</p>
+                            <p><span id="xp-score" style="font-size: 2rem; color: #27ae60; font-weight: bold;">0</span></p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <p>© 2026 EnglishHub Mini App. Thiết kế tối ưu cho trải nghiệm học tập.</p>
+    </footer>
+
+    <div id="toast-container"></div>
+
+    <script>
+        // ==========================================
+        // DỮ LIỆU TOÀN TẬP
+        // ==========================================
+        const vocabData = [
+            { id: 1, topic: "Gia đình", en: "Mother", pro: "/ˈmʌðər/", vi: "Mẹ", ex: "My mother is a teacher." },
+            { id: 2, topic: "Gia đình", en: "Father", pro: "/ˈfɑːðər/", vi: "Cha", ex: "He is my father." },
+            { id: 3, topic: "Gia đình", en: "Brother", pro: "/ˈbrʌðər/", vi: "Anh/em trai", ex: "I have one brother." },
+            { id: 4, topic: "Gia đình", en: "Sister", pro: "/ˈsɪstər/", vi: "Chị/em gái", ex: "She is my sister." },
+            { id: 5, topic: "Công việc", en: "Teacher", pro: "/ˈtiːtʃər/", vi: "Giáo viên", ex: "She is a good teacher." },
+            { id: 6, topic: "Công việc", en: "Doctor", pro: "/ˈdɒktər/", vi: "Bác sĩ", ex: "He wants to be a doctor." },
+            { id: 7, topic: "Công việc", en: "Engineer", pro: "/ˌendʒɪˈnɪər/", vi: "Kỹ sư", ex: "My father is an engineer." },
+            { id: 8, topic: "Công việc", en: "Nurse", pro: "/nɜːrs/", vi: "Y tá", ex: "The nurse is very kind." },
+            { id: 9, topic: "Công việc", en: "Programmer", pro: "/ˈprəʊɡræmər/", vi: "Lập trình viên", ex: "He works as a programmer writing CSS code." },
+            { id: 10, topic: "Công việc", en: "Accountant", pro: "/əˈkaʊntənt/", vi: "Kế toán", ex: "The accountant is calculating taxes." },
+            { id: 11, topic: "Công việc", en: "Chef", pro: "/ʃef/", vi: "Đầu bếp", ex: "The chef is preparing dinner." }
+        ];
+
+       const grammarData = [
+            { title: "Hiện tại đơn (Present Simple)", rule: "S + V(s/es)", sign: "every day, usually, often", ex: "She goes to school every day." },
+            { title: "Hiện tại tiếp diễn (Present Continuous)", rule: "S + am/is/are + V-ing", sign: "now, at the moment", ex: "They are playing football now." },
+            { title: "Quá khứ đơn (Past Simple)", rule: "S + V2/ed", sign: "yesterday, last night, ago", ex: "I went to the cinema last night." },
+            { title: "Tương lai gần (Near Future)", rule: "S + am/is/are + going to + V", sign: "tomorrow, next week", ex: "I am going to visit my grandparents." },
+            // 2 Thì mới được thêm vào:
+            { title: "Hiện tại hoàn thành (Present Perfect)", rule: "S + have/has + V3/ed", sign: "since, for, already, just, yet", ex: "I have studied English for 3 years." },
+            { title: "Quá khứ tiếp diễn (Past Continuous)", rule: "S + was/were + V-ing", sign: "at 8pm yesterday, while, when", ex: "I was watching TV at 8 PM last night." }
+        ];
+
+    const mcqData = [
+            { q: "She ___ to school every day.", options: ["A. Go", "B. Goes", "C. Going", "D. Went"], ans: 1, exp: "Dấu hiệu 'every day' -> Hiện tại đơn. 'She' là ngôi thứ 3 số ít." },
+            { q: "They ___ playing football now.", options: ["A. Is", "B. Am", "C. Are", "D. Be"], ans: 2, exp: "Dấu hiệu 'now' -> Hiện tại tiếp diễn. 'They' đi với to be 'are'." },
+            { q: "What ___ you do yesterday?", options: ["A. Do", "B. Did", "C. Does", "D. Doing"], ans: 1, exp: "Dấu hiệu 'yesterday' -> Quá khứ đơn. Mượn trợ động từ 'Did'." },
+            { q: "I ___ to the cinema last night.", options: ["A. Go", "B. Went", "C. Goes", "D. Gone"], ans: 1, exp: "Quá khứ của động từ bất quy tắc 'go' là 'went'." },
+            { q: "She ___ English for 5 years.", options: ["A. Learn", "B. Learns", "C. Has learned", "D. Learning"], ans: 2, exp: "Dấu hiệu 'for + khoảng thời gian' -> Hiện tại hoàn thành." },
+            // Câu trắc nghiệm mới cho Quá khứ tiếp diễn:
+            { q: "At 8 PM last night, I ___ TV.", options: ["A. Watch", "B. Watched", "C. Was watching", "D. Am watching"], ans: 2, exp: "Dấu hiệu 'At 8 PM last night' (thời điểm xác định trong quá khứ) -> Quá khứ tiếp diễn." }
+        ];
+     const fillData = [
+            { q: "I ___ (be) a student.", ans: "am", exp: "Động từ to be đi với 'I' ở hiện tại là 'am'." },
+            { q: "They ___ (play) soccer yesterday.", ans: "played", exp: "Quá khứ đơn có quy tắc thêm -ed." },
+            { q: "She ___ (go) to school by bus every day.", ans: "goes", exp: "Hiện tại đơn ngôi thứ 3 số ít tận cùng là 'o' thì thêm -es." },
+            // Câu điền từ mới cho Hiện tại hoàn thành:
+            { q: "He ___ (live) in Hanoi since 2010.", ans: "has lived", exp: "Dấu hiệu 'since + mốc thời gian' -> Hiện tại hoàn thành. 'He' đi với 'has'." }
+        ];
+
+        // Biến toàn cục quản lý tiến trình
+        let learnedVocab = JSON.parse(localStorage.getItem('learnedVocab')) || [];
+        let totalXP = parseInt(localStorage.getItem('totalXP')) || 0;
+        let totalTasks = vocabData.length + mcqData.length + fillData.length;
+
+        // ==========================================
+        // LOGIC GIAO DIỆN SPA & KHỞI TẠO
+        // ==========================================
+        window.onload = () => {
+            initApp();
+        };
+
+        function initApp() {
+            initTheme();
+            initStreak();
+            renderVocab();
+            renderGrammar();
+            renderMCQ();
+            renderFill();
+            updateProgress();
+        }
+
+        function showSection(sectionId) {
+            // Cập nhật trạng thái menu active
+            document.querySelectorAll('.nav-link').forEach(link => link.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Ẩn tất cả section và hiển thị section được gọi
+            document.querySelectorAll('section').forEach(sec => sec.style.display = 'none');
+            const activeSec = document.getElementById(sectionId);
+            activeSec.style.display = (sectionId === 'hero') ? 'flex' : 'block';
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+        }
+
+        function initTheme() {
+            if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark-mode');
+            document.getElementById('theme-toggle').addEventListener('click', () => {
+                document.body.classList.toggle('dark-mode');
+                localStorage.setItem('theme', document.body.classList.contains('dark-mode') ? 'dark' : 'light');
+            });
+        }
+
+        function showToast(msg, icon = 'ℹ️') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `<span>${icon}</span> <span>${msg}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        // ==========================================
+        // TỪ VỰNG & PHÁT ÂM
+        // ==========================================
+        function renderVocab() {
+            const container = document.getElementById('vocab-container');
+            vocabData.forEach(v => {
+                const isLearned = learnedVocab.includes(v.id);
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h3 style="font-size:1.5rem; color: var(--primary);">${v.en}</h3>
+                            <p style="color: #7f8c8d;">${v.pro}</p>
+                            ${isLearned ? '<span style="color:#27ae60;font-size:0.8rem; margin-top:10px;">✓ Đã học</span>' : ''}
+                        </div>
+                        <div class="card-back">
+                            <h3 style="font-size:1.5rem; color: var(--accent);">${v.vi}</h3>
+                            <p style="font-style:italic; font-size:0.9rem; margin-top:10px;">"${v.ex}"</p>
+                            <button class="speaker-icon" onclick="speakText('${v.en}', event)" title="Nghe phát âm">🔊</button>
+                        </div>
+                    </div>
+                `;
+                card.onclick = () => {
+                    card.classList.toggle('flipped');
+                    if (!learnedVocab.includes(v.id)) {
+                        learnedVocab.push(v.id);
+                        localStorage.setItem('learnedVocab', JSON.stringify(learnedVocab));
+                        addXP(10); // +10 XP khi lật thẻ mới
+                    }
+                };
+                container.appendChild(card);
+            });
+        }
+
+        function speakText(text, event) {
+            event.stopPropagation(); // Ngăn sự kiện lật thẻ
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'en-US';
+                window.speechSynthesis.speak(utterance);
+                showToast(`Đang phát âm: ${text}`, '🔊');
+            } else {
+                alert("Trình duyệt không hỗ trợ Web Speech API.");
+            }
+        }
+
+        // ==========================================
+        // NGỮ PHÁP
+        // ==========================================
+        function renderGrammar() {
+            const container = document.getElementById('grammar-container');
+            grammarData.forEach((g, index) => {
+                container.innerHTML += `
+                    <div class="accordion-item" onclick="this.classList.toggle('active')">
+                        <div class="accordion-header">
+                            <span>${g.title}</span> <span>▼</span>
+                        </div>
+                        <div class="accordion-content">
+                            <div style="margin: 15px 0;">
+                                <p><strong>Cấu trúc:</strong> <span style="color:var(--accent); font-family:monospace; font-size:1.1rem;">${g.rule}</span></p>
+                                <p><strong>Dấu hiệu:</strong> ${g.sign}</p>
+                                <p><strong>Ví dụ:</strong> <span id="ex-${index}">${g.ex}</span></p>
+                                <button class="btn copy-btn" onclick="copyText('ex-${index}', event)">📋 Copy ví dụ</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function copyText(elementId, event) {
+            event.stopPropagation(); // Ngăn đóng accordion
+            const text = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast("Đã sao chép vào bộ nhớ tạm!", '✅');
+            });
+        }
+
+        // ==========================================
+        // BÀI TẬP (CHẤM ĐIỂM & XP)
+        // ==========================================
+        function renderMCQ() {
+            const container = document.getElementById('mcq-container');
+            mcqData.forEach((q, qIndex) => {
+                let optionsHTML = q.options.map((opt, oIndex) => 
+                    `<label><input type="radio" name="q${qIndex}" value="${oIndex}"> ${opt}</label>`
+                ).join('');
+                container.innerHTML += `
+                    <div class="question" id="mcq-box-${qIndex}">
+                        <p><strong>Câu ${qIndex + 1}:</strong> ${q.q}</p>
+                        <div class="options">${optionsHTML}</div>
+                        <div class="exp-text" id="exp-mcq-${qIndex}"></div>
+                    </div>
+                `;
+            });
+        }
+
+        function submitMCQ() {
+            let score = 0;
+            mcqData.forEach((q, index) => {
+                const selected = document.querySelector(`input[name="q${index}"]:checked`);
+                const expEl = document.getElementById(`exp-mcq-${index}`);
+                expEl.style.display = 'block';
+                
+                if (selected && parseInt(selected.value) === q.ans) {
+                    score++;
+                    expEl.innerHTML = `✅ <strong>Đúng!</strong> ${q.exp}`;
+                    expEl.style.color = '#27ae60';
+                } else {
+                    expEl.innerHTML = `❌ <strong>Sai.</strong> Đáp án đúng là ${q.options[q.ans]}. ${q.exp}`;
+                    expEl.style.color = '#c0392b';
+                }
+            });
+            
+            document.getElementById('mcq-result').innerHTML = `Kết quả: <span style="color:var(--primary)">${score}/${mcqData.length}</span> câu.`;
+            addXP(score * 20); // +20 XP cho mỗi câu đúng
+            showToast("Đã nộp bài trắc nghiệm!", '📝');
+        }
+
+        function renderFill() {
+            const container = document.getElementById('fill-container');
+            fillData.forEach((q, index) => {
+                const parts = q.q.split('___');
+                container.innerHTML += `
+                    <div class="fill-blank-item">
+                        <span><strong>Câu ${index + 1}:</strong> ${parts[0]}</span>
+                        <input type="text" id="fill-${index}" placeholder="nhập từ...">
+                        <span>${parts[1]}</span>
+                        <div class="exp-text" id="exp-fill-${index}"></div>
+                    </div>
+                `;
+            });
+        }
+
+        function submitFill() {
+            let score = 0;
+            fillData.forEach((q, index) => {
+                const input = document.getElementById(`fill-${index}`).value.trim().toLowerCase();
+                const expEl = document.getElementById(`exp-fill-${index}`);
+                expEl.style.display = 'block';
+                
+                if (input === q.ans.toLowerCase()) {
+                    score++;
+                    expEl.innerHTML = `✅ <strong>Chính xác!</strong> ${q.exp}`;
+                    expEl.style.color = '#27ae60';
+                } else {
+                    expEl.innerHTML = `❌ <strong>Sai.</strong> Đáp án đúng: <u>${q.ans}</u>. ${q.exp}`;
+                    expEl.style.color = '#c0392b';
+                }
+            });
+            
+            document.getElementById('fill-result').innerHTML = `Kết quả: <span style="color:var(--primary)">${score}/${fillData.length}</span> câu.`;
+            addXP(score * 30); // +30 XP cho câu điền từ đúng
+            showToast("Đã kiểm tra bài điền từ!", '📝');
+        }
+
+        // ==========================================
+        // TIẾN TRÌNH & GAMIFICATION
+        // ==========================================
+        function addXP(amount) {
+            totalXP += amount;
+            localStorage.setItem('totalXP', totalXP);
+            updateProgress();
+        }
+
+        function updateProgress() {
+            // Hiển thị XP
+            document.getElementById('xp-score').innerText = totalXP;
+            
+            // Tính % dựa trên thẻ từ vựng đã lật (Mô phỏng)
+            let percent = Math.round((learnedVocab.length / vocabData.length) * 100);
+            if (percent > 100) percent = 100;
+            
+            document.getElementById('progress-fill').style.width = percent + '%';
+            document.getElementById('progress-text').innerText = percent + '% hoàn thành bộ từ vựng';
+        }
+
+        function initStreak() {
+            const today = new Date().toDateString();
+            let lastDate = localStorage.getItem('lastStudyDate');
+            let streak = parseInt(localStorage.getItem('streak')) || 0;
+
+            if (lastDate !== today) {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                
+                if (lastDate === yesterday.toDateString()) {
+                    streak++; 
+                } else if (lastDate) {
+                    streak = 1; 
+                } else {
+                    streak = 1; 
+                }
+                localStorage.setItem('streak', streak);
+                localStorage.setItem('lastStudyDate', today);
+            }
+            document.getElementById('streak-count').innerText = streak;
+        }
+    </script>
+</body>
+</html>
